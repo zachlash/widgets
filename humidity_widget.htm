@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Relative Humidity Calculator</title>
-    
-    <!-- Load Chart.js and annotation plugin -->
+
+    <!-- Load Chart.js and Annotations Plugin -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
 
@@ -35,6 +35,10 @@
         canvas {
             margin-top: 20px;
         }
+        .info {
+            font-size: 0.9em;
+            color: gray;
+        }
     </style>
 </head>
 <body>
@@ -61,72 +65,57 @@
         <button onclick="updateChart()">Calculate & Plot</button>
 
         <h3 id="rh2Output"></h3>
+        <p class="info">Note: RH decreases as temperature increases (if no moisture is added).</p>
 
         <canvas id="rhChart"></canvas>
     </div>
 
     <script>
-        // Convert Fahrenheit to Celsius
-        function fahrenheitToCelsius(f) {
-            return (f - 32) * 5 / 9;
-        }
+        // Utility functions for temperature conversion
+        const fahrenheitToCelsius = (f) => (f - 32) * 5 / 9;
+        const celsiusToFahrenheit = (c) => (c * 9 / 5) + 32;
 
-        // Convert Celsius to Fahrenheit
-        function celsiusToFahrenheit(c) {
-            return (c * 9 / 5) + 32;
-        }
-
-        // Saturation vapor pressure calculation
-        function saturationVaporPressure(T) {
-            return 6.112 * Math.exp((17.62 * T) / (T + 243.12));
-        }
+        // Saturation vapor pressure (Tetens formula)
+        const saturationVaporPressure = (T) => 6.112 * Math.exp((17.62 * T) / (T + 243.12));
 
         // Calculate RH at T2
         function calculateRH(RH1, T1, T2, unit) {
-            let T1_C = (unit === "F") ? fahrenheitToCelsius(T1) : T1;
-            let T2_C = (unit === "F") ? fahrenheitToCelsius(T2) : T2;
+            const T1_C = unit === "F" ? fahrenheitToCelsius(T1) : T1;
+            const T2_C = unit === "F" ? fahrenheitToCelsius(T2) : T2;
 
-            let e_s_T1 = saturationVaporPressure(T1_C);
-            let e_s_T2 = saturationVaporPressure(T2_C);
+            const e_s_T1 = saturationVaporPressure(T1_C);
+            const e_s_T2 = saturationVaporPressure(T2_C);
 
-            let RH2 = RH1 * (e_s_T1 / e_s_T2);
-            return Math.min(Math.max(RH2, 0), 100); // Keep RH in range 0-100%
+            return Math.min(Math.max(RH1 * (e_s_T1 / e_s_T2), 0), 100);
         }
 
-        let myChart; // Store chart instance globally
+        let myChart;
 
         function updateChart() {
-            let RH1 = parseFloat(document.getElementById("rh1").value);
-            let T1 = parseFloat(document.getElementById("t1").value);
-            let T2 = parseFloat(document.getElementById("t2").value);
-            let unit = document.getElementById("unit").value;
+            const RH1 = parseFloat(document.getElementById("rh1").value);
+            const T1 = parseFloat(document.getElementById("t1").value);
+            const T2 = parseFloat(document.getElementById("t2").value);
+            const unit = document.getElementById("unit").value;
 
             if (isNaN(RH1) || isNaN(T1) || isNaN(T2)) {
                 alert("Please enter valid numbers for RH and Temperature.");
                 return;
             }
 
-            let RH2 = calculateRH(RH1, T1, T2, unit);
+            const RH2 = calculateRH(RH1, T1, T2, unit);
             document.getElementById("rh2Output").innerText = `RH at ${T2}°${unit}: ${RH2.toFixed(2)}%`;
 
-            let ctx = document.getElementById("rhChart").getContext("2d");
+            const ctx = document.getElementById("rhChart").getContext("2d");
 
-            // Determine temperature range dynamically
-            let tempMin = (unit === "F") ? 0 : -20;
-            let tempMax = (unit === "F") ? 100 : 50;
-            let temperatures = [];
-            let humidityValues = [];
-            
-            for (let t = tempMin; t <= tempMax; t++) {
-                temperatures.push(t);
-                humidityValues.push(calculateRH(RH1, T1, t, unit));
-            }
+            // Set temperature range dynamically
+            const tempMin = unit === "F" ? 0 : -20;
+            const tempMax = unit === "F" ? 100 : 50;
+            const temperatures = Array.from({ length: tempMax - tempMin + 1 }, (_, i) => i + tempMin);
+            const humidityValues = temperatures.map(t => calculateRH(RH1, T1, t, unit));
 
-            if (myChart) {
-                myChart.destroy(); // Destroy previous chart before creating a new one
-            }
+            if (myChart) myChart.destroy(); // Destroy old chart before creating new one
 
-            Chart.register(ChartjsPluginAnnotation); // Register annotation plugin
+            Chart.register(ChartjsPluginAnnotation);
 
             myChart = new Chart(ctx, {
                 type: "line",
@@ -150,7 +139,7 @@
                                     xMin: temperatures.indexOf(T1),
                                     xMax: temperatures.indexOf(T1),
                                     borderColor: "red",
-                                    borderWidth: 2,
+                                    borderWidth: 3,
                                     label: { content: `T1: ${T1}°${unit}`, enabled: true, position: "top" }
                                 },
                                 line2: {
@@ -158,7 +147,7 @@
                                     xMin: temperatures.indexOf(T2),
                                     xMax: temperatures.indexOf(T2),
                                     borderColor: "green",
-                                    borderWidth: 2,
+                                    borderWidth: 3,
                                     label: { content: `T2: ${T2}°${unit}`, enabled: true, position: "top" }
                                 }
                             }
