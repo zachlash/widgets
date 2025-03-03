@@ -175,13 +175,29 @@
                     plugins: {
                         annotation: {
                             annotations: {
+                                T1Line: {
+                                    type: "line",
+                                    xMin: T1,
+                                    xMax: T1,
+                                    borderColor: "red",
+                                    borderWidth: 2,
+                                    label: { content: `T1: ${T1.toFixed(1)}°${unit}`, enabled: true }
+                                },
+                                T2Line: {
+                                    type: "line",
+                                    xMin: T2,
+                                    xMax: T2,
+                                    borderColor: "green",
+                                    borderWidth: 2,
+                                    label: { content: `T2: ${T2.toFixed(1)}°${unit}`, enabled: true }
+                                },
                                 dewPointLine: {
                                     type: "line",
                                     xMin: dewPoint,
                                     xMax: dewPoint,
                                     borderColor: "purple",
                                     borderWidth: 2,
-                                    label: { content: `Dew Point: ${dewPoint.toFixed(1)}°${unit}`, enabled: true, position: "top" }
+                                    label: { content: `Dew Point: ${dewPoint.toFixed(1)}°${unit}`, enabled: true }
                                 }
                             }
                         }
