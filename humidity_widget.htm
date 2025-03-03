@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Relative Humidity Calculator</title>
+    <title>Relative Humidity & Dew Point Calculator</title>
 
-    <!-- Load Chart.js and Annotations Plugin -->
+    <!-- Load Chart.js and Annotation Plugin -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
 
@@ -23,76 +23,127 @@
             border-radius: 8px;
             background-color: #f9f9f9;
         }
-        label {
-            display: block;
-            margin: 10px 0 5px;
+        .toggle-container {
+            display: flex;
+            justify-content: center;
+            margin: 10px 0;
+        }
+        .toggle-label {
+            cursor: pointer;
+            padding: 10px 20px;
+            background: #ddd;
+            border-radius: 5px;
+            margin: 0 5px;
+            font-weight: bold;
+            user-select: none;
+        }
+        .toggle-label.active {
+            background: #007bff;
+            color: white;
         }
         input {
             width: 100%;
             padding: 8px;
+            text-align: center;
             margin-bottom: 15px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
         }
         canvas {
             margin-top: 20px;
-        }
-        .unit-toggle {
-            display: inline-block;
-            cursor: pointer;
-            background: #007bff;
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 10px;
-        }
-        .unit-toggle:hover {
-            background: #0056b3;
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h2>Relative Humidity Calculator</h2>
-        <p>Convert relative humidity at one temperature to another and visualize the relationship.</p>
+        <h2>Relative Humidity & Dew Point Calculator</h2>
+        <p>Calculate RH at a different temperature and determine the dew point.</p>
 
         <label for="rh1">Initial Relative Humidity (%):</label>
         <input type="number" id="rh1" value="50" min="0" max="100">
 
-        <label for="t1">Initial Temperature (<span id="unitLabel">°F</span>):</label>
-        <input type="number" id="t1" value="70" min="-50" max="150">
+        <label>Temperature Unit:</label>
+        <div class="toggle-container">
+            <span id="toggleC" class="toggle-label active" onclick="toggleUnit('C')">°C</span>
+            <span id="toggleF" class="toggle-label" onclick="toggleUnit('F')">°F</span>
+        </div>
 
-        <label for="t2">Target Temperature (<span id="unitLabel2">°F</span>):</label>
-        <input type="number" id="t2" value="90" min="-50" max="150">
+        <label for="t1">Initial Temperature (<span id="unitLabel">°C</span>):</label>
+        <input type="number" id="t1" value="21" placeholder="°C">
 
-        <div class="unit-toggle" onclick="toggleUnit()">Switch to °C</div>
+        <label for="t2">Target Temperature (<span id="unitLabel2">°C</span>):</label>
+        <input type="number" id="t2" value="32" placeholder="°C">
 
         <button onclick="updateChart()">Calculate & Plot</button>
 
         <h3 id="rh2Output"></h3>
+        <h3 id="dewPointOutput"></h3>
 
         <canvas id="rhChart"></canvas>
     </div>
 
     <script>
-        // Utility functions for temperature conversion
-        const fahrenheitToCelsius = (f) => (f - 32) * 5 / 9;
-        const celsiusToFahrenheit = (c) => (c * 9 / 5) + 32;
+        let unit = "C"; // Default to Celsius
 
-        // Saturation vapor pressure (Tetens formula)
-        const saturationVaporPressure = (T) => 6.112 * Math.exp((17.62 * T) / (T + 243.12));
+        function fahrenheitToCelsius(f) { return (f - 32) * 5 / 9; }
+        function celsiusToFahrenheit(c) { return (c * 9 / 5) + 32; }
 
-        // Calculate RH at T2
+        function toggleUnit(selectedUnit) {
+            if (unit === selectedUnit) return; // Do nothing if already selected
+            
+            let t1Input = document.getElementById("t1");
+            let t2Input = document.getElementById("t2");
+
+            if (selectedUnit === "F") {
+                t1Input.value = celsiusToFahrenheit(parseFloat(t1Input.value)).toFixed(1);
+                t2Input.value = celsiusToFahrenheit(parseFloat(t2Input.value)).toFixed(1);
+                document.getElementById("unitLabel").innerText = "°F";
+                document.getElementById("unitLabel2").innerText = "°F";
+            } else {
+                t1Input.value = fahrenheitToCelsius(parseFloat(t1Input.value)).toFixed(1);
+                t2Input.value = fahrenheitToCelsius(parseFloat(t2Input.value)).toFixed(1);
+                document.getElementById("unitLabel").innerText = "°C";
+                document.getElementById("unitLabel2").innerText = "°C";
+            }
+
+            unit = selectedUnit;
+            document.getElementById("toggleC").classList.toggle("active", unit === "C");
+            document.getElementById("toggleF").classList.toggle("active", unit === "F");
+
+            updateChart();
+        }
+
+        function saturationVaporPressure(T) {
+            return 6.112 * Math.exp((17.62 * T) / (T + 243.12));
+        }
+
         function calculateRH(RH1, T1, T2) {
-            const e_s_T1 = saturationVaporPressure(T1);
-            const e_s_T2 = saturationVaporPressure(T2);
+            let e_s_T1 = saturationVaporPressure(T1);
+            let e_s_T2 = saturationVaporPressure(T2);
             return Math.min(Math.max(RH1 * (e_s_T1 / e_s_T2), 0), 100);
         }
 
+        function calculateDewPoint(T, RH) {
+            let lnRH = Math.log(RH / 100);
+            return (243.12 * (lnRH + (17.62 * T) / (T + 243.12))) / (17.62 - (lnRH + (17.62 * T) / (T + 243.12)));
+        }
+
         let myChart;
-        let unit = "F"; // Default unit
 
         function updateChart() {
-            const RH1 = parseFloat(document.getElementById("rh1").value);
+            let RH1 = parseFloat(document.getElementById("rh1").value);
             let T1 = parseFloat(document.getElementById("t1").value);
             let T2 = parseFloat(document.getElementById("t2").value);
 
@@ -101,30 +152,26 @@
                 T2 = fahrenheitToCelsius(T2);
             }
 
-            if (isNaN(RH1) || isNaN(T1) || isNaN(T2)) {
-                alert("Please enter valid numbers for RH and Temperature.");
-                return;
-            }
+            let RH2 = calculateRH(RH1, T1, T2);
+            let dewPoint = calculateDewPoint(T1, RH1);
+            document.getElementById("rh2Output").innerText = `RH at ${T2.toFixed(1)}°${unit}: ${RH2.toFixed(2)}%`;
+            document.getElementById("dewPointOutput").innerText = `Dew Point: ${dewPoint.toFixed(1)}°${unit}`;
 
-            const RH2 = calculateRH(RH1, T1, T2);
-            document.getElementById("rh2Output").innerText = `RH at ${T2.toFixed(2)}°${unit}: ${RH2.toFixed(2)}%`;
+            let ctx = document.getElementById("rhChart").getContext("2d");
 
-            const ctx = document.getElementById("rhChart").getContext("2d");
+            let tempMin = unit === "F" ? -10 : -20;
+            let tempMax = unit === "F" ? 120 : 50;
+            let temperatures = Array.from({ length: tempMax - tempMin + 1 }, (_, i) => i + tempMin);
+            let humidityValues = temperatures.map(t => calculateRH(RH1, T1, unit === "F" ? fahrenheitToCelsius(t) : t));
 
-            // Define temperature range dynamically
-            const tempMin = unit === "F" ? 0 : -20;
-            const tempMax = unit === "F" ? 100 : 50;
-            const temperatures = Array.from({ length: tempMax - tempMin + 1 }, (_, i) => i + tempMin);
-            const humidityValues = temperatures.map(t => calculateRH(RH1, T1, unit === "F" ? fahrenheitToCelsius(t) : t));
-
-            if (myChart) myChart.destroy(); // Destroy old chart before creating a new one
+            if (myChart) myChart.destroy();
 
             myChart = new Chart(ctx, {
                 type: "line",
                 data: {
                     labels: temperatures,
                     datasets: [{
-                        label: `Relative Humidity vs Temperature (${unit})`,
+                        label: "Relative Humidity (%)",
                         data: humidityValues,
                         borderColor: "blue",
                         borderWidth: 2,
@@ -136,61 +183,23 @@
                     plugins: {
                         annotation: {
                             annotations: {
-                                line1: {
+                                dewPointLine: {
                                     type: "line",
-                                    xMin: T1,
-                                    xMax: T1,
-                                    borderColor: "red",
+                                    xMin: dewPoint,
+                                    xMax: dewPoint,
+                                    borderColor: "purple",
                                     borderWidth: 2,
-                                    label: { content: `T1: ${T1.toFixed(1)}°${unit}`, enabled: true, position: "top" }
-                                },
-                                line2: {
-                                    type: "line",
-                                    xMin: T2,
-                                    xMax: T2,
-                                    borderColor: "green",
-                                    borderWidth: 2,
-                                    label: { content: `T2: ${T2.toFixed(1)}°${unit}`, enabled: true, position: "top" }
+                                    label: { content: `Dew Point: ${dewPoint.toFixed(1)}°${unit}`, enabled: true, position: "top" }
                                 }
                             }
                         }
                     },
                     scales: {
-                        x: { 
-                            title: { display: true, text: `Temperature (${unit})` },
-                            type: "linear",
-                            ticks: { stepSize: 10 }
-                        },
-                        y: { 
-                            min: 0, 
-                            max: 100, 
-                            title: { display: true, text: "Relative Humidity (%)" } 
-                        }
+                        x: { title: { display: true, text: `Temperature (${unit})` } },
+                        y: { min: 0, max: 100, title: { display: true, text: "Relative Humidity (%)" } }
                     }
                 }
             });
-        }
-
-        function toggleUnit() {
-            const t1Input = document.getElementById("t1");
-            const t2Input = document.getElementById("t2");
-
-            if (unit === "F") {
-                t1Input.value = fahrenheitToCelsius(parseFloat(t1Input.value)).toFixed(1);
-                t2Input.value = fahrenheitToCelsius(parseFloat(t2Input.value)).toFixed(1);
-                unit = "C";
-                document.querySelector(".unit-toggle").innerText = "Switch to °F";
-            } else {
-                t1Input.value = celsiusToFahrenheit(parseFloat(t1Input.value)).toFixed(1);
-                t2Input.value = celsiusToFahrenheit(parseFloat(t2Input.value)).toFixed(1);
-                unit = "F";
-                document.querySelector(".unit-toggle").innerText = "Switch to °C";
-            }
-
-            document.getElementById("unitLabel").innerText = `°${unit}`;
-            document.getElementById("unitLabel2").innerText = `°${unit}`;
-
-            updateChart(); // Refresh chart after conversion
         }
 
         document.addEventListener("DOMContentLoaded", updateChart);
