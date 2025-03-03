@@ -95,14 +95,14 @@
     </div>
 
     <script>
-        let unit = "C"; // Default to Celsius
+        let unit = "C"; // Default unit
 
         function fahrenheitToCelsius(f) { return (f - 32) * 5 / 9; }
         function celsiusToFahrenheit(c) { return (c * 9 / 5) + 32; }
 
         function toggleUnit(selectedUnit) {
-            if (unit === selectedUnit) return; // Do nothing if already selected
-            
+            if (unit === selectedUnit) return;
+
             let t1Input = document.getElementById("t1");
             let t2Input = document.getElementById("t2");
 
@@ -153,16 +153,16 @@
             }
 
             let RH2 = calculateRH(RH1, T1, T2);
-            let dewPoint = calculateDewPoint(T1, RH1);
+            let dewPointC = calculateDewPoint(T1, RH1);
+            let dewPoint = unit === "F" ? celsiusToFahrenheit(dewPointC) : dewPointC;
+
             document.getElementById("rh2Output").innerText = `RH at ${T2.toFixed(1)}°${unit}: ${RH2.toFixed(2)}%`;
             document.getElementById("dewPointOutput").innerText = `Dew Point: ${dewPoint.toFixed(1)}°${unit}`;
 
             let ctx = document.getElementById("rhChart").getContext("2d");
 
-            let tempMin = unit === "F" ? -10 : -20;
-            let tempMax = unit === "F" ? 120 : 50;
-            let temperatures = Array.from({ length: tempMax - tempMin + 1 }, (_, i) => i + tempMin);
-            let humidityValues = temperatures.map(t => calculateRH(RH1, T1, unit === "F" ? fahrenheitToCelsius(t) : t));
+            let temperatures = Array.from({ length: 71 }, (_, i) => i - 20);
+            let humidityValues = temperatures.map(t => calculateRH(RH1, T1, t));
 
             if (myChart) myChart.destroy();
 
@@ -194,10 +194,7 @@
                             }
                         }
                     },
-                    scales: {
-                        x: { title: { display: true, text: `Temperature (${unit})` } },
-                        y: { min: 0, max: 100, title: { display: true, text: "Relative Humidity (%)" } }
-                    }
+                    scales: { x: { title: { text: `Temperature (${unit})` } }, y: { min: 0, max: 100 } }
                 }
             });
         }
