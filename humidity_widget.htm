@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relative Humidity Calculator</title>
+    
+    <!-- Load Chart.js and annotation plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+        }
+        canvas {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Relative Humidity Calculator</h2>
+        <p>Convert relative humidity at one temperature to another and visualize the relationship.</p>
+
+        <label for="rh1">Initial Relative Humidity (%):</label>
+        <input type="number" id="rh1" value="50" min="0" max="100">
+
+        <label for="t1">Initial Temperature (T1):</label>
+        <input type="number" id="t1" value="70" min="-50" max="150">
+
+        <label for="t2">Target Temperature (T2):</label>
+        <input type="number" id="t2" value="90" min="-50" max="150">
+
+        <label for="unit">Select Unit:</label>
+        <select id="unit">
+            <option value="F">Fahrenheit (°F)</option>
+            <option value="C">Celsius (°C)</option>
+        </select>
+
+        <button onclick="updateChart()">Calculate & Plot</button>
+
+        <h3 id="rh2Output"></h3>
+
+        <canvas id="rhChart"></canvas>
+    </div>
+
+    <script>
+        // Convert Fahrenheit to Celsius
+        function fahrenheitToCelsius(f) {
+            return (f - 32) * 5 / 9;
+        }
+
+        // Convert Celsius to Fahrenheit
+        function celsiusToFahrenheit(c) {
+            return (c * 9 / 5) + 32;
+        }
+
+        // Saturation vapor pressure calculation
+        function saturationVaporPressure(T) {
+            return 6.112 * Math.exp((17.62 * T) / (T + 243.12));
+        }
+
+        // Calculate RH at T2
+        function calculateRH(RH1, T1, T2, unit) {
+            let T1_C = (unit === "F") ? fahrenheitToCelsius(T1) : T1;
+            let T2_C = (unit === "F") ? fahrenheitToCelsius(T2) : T2;
+
+            let e_s_T1 = saturationVaporPressure(T1_C);
+            let e_s_T2 = saturationVaporPressure(T2_C);
+
+            let RH2 = RH1 * (e_s_T1 / e_s_T2);
+            return Math.min(Math.max(RH2, 0), 100); // Keep RH in range 0-100%
+        }
+
+        let myChart; // Store chart instance globally
+
+        function updateChart() {
+            let RH1 = parseFloat(document.getElementById("rh1").value);
+            let T1 = parseFloat(document.getElementById("t1").value);
+            let T2 = parseFloat(document.getElementById("t2").value);
+            let unit = document.getElementById("unit").value;
+
+            if (isNaN(RH1) || isNaN(T1) || isNaN(T2)) {
+                alert("Please enter valid numbers for RH and Temperature.");
+                return;
+            }
+
+            let RH2 = calculateRH(RH1, T1, T2, unit);
+            document.getElementById("rh2Output").innerText = `RH at ${T2}°${unit}: ${RH2.toFixed(2)}%`;
+
+            let ctx = document.getElementById("rhChart").getContext("2d");
+
+            // Determine temperature range dynamically
+            let tempMin = (unit === "F") ? 0 : -20;
+            let tempMax = (unit === "F") ? 100 : 50;
+            let temperatures = [];
+            let humidityValues = [];
+            
+            for (let t = tempMin; t <= tempMax; t++) {
+                temperatures.push(t);
+                humidityValues.push(calculateRH(RH1, T1, t, unit));
+            }
+
+            if (myChart) {
+                myChart.destroy(); // Destroy previous chart before creating a new one
+            }
+
+            Chart.register(ChartjsPluginAnnotation); // Register annotation plugin
+
+            myChart = new Chart(ctx, {
+                type: "line",
+                data: {
+                    labels: temperatures,
+                    datasets: [{
+                        label: `Relative Humidity vs Temperature (${unit})`,
+                        data: humidityValues,
+                        borderColor: "blue",
+                        borderWidth: 2,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        annotation: {
+                            annotations: {
+                                line1: {
+                                    type: "line",
+                                    xMin: temperatures.indexOf(T1),
+                                    xMax: temperatures.indexOf(T1),
+                                    borderColor: "red",
+                                    borderWidth: 2,
+                                    label: { content: `T1: ${T1}°${unit}`, enabled: true, position: "top" }
+                                },
+                                line2: {
+                                    type: "line",
+                                    xMin: temperatures.indexOf(T2),
+                                    xMax: temperatures.indexOf(T2),
+                                    borderColor: "green",
+                                    borderWidth: 2,
+                                    label: { content: `T2: ${T2}°${unit}`, enabled: true, position: "top" }
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: `Temperature (${unit})` } },
+                        y: { min: 0, max: 100, title: { display: true, text: "Relative Humidity (%)" } }
+                    }
+                }
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", updateChart);
+    </script>
+
+</body>
+</html>
