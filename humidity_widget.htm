@@ -95,7 +95,7 @@
     </div>
 
     <script>
-        let unit = "C"; // Default unit
+        let unit = "C"; // Keep all backend math in Celsius
 
         function fahrenheitToCelsius(f) { return (f - 32) * 5 / 9; }
         function celsiusToFahrenheit(c) { return (c * 9 / 5) + 32; }
@@ -145,16 +145,19 @@
             let T1 = parseFloat(document.getElementById("t1").value);
             let T2 = parseFloat(document.getElementById("t2").value);
 
-            let RH2 = calculateRH(RH1, T1, T2);
-            let dewPoint = calculateDewPoint(T1, RH1);
+            let T1_C = unit === "F" ? fahrenheitToCelsius(T1) : T1;
+            let T2_C = unit === "F" ? fahrenheitToCelsius(T2) : T2;
+
+            let RH2 = calculateRH(RH1, T1_C, T2_C);
+            let dewPoint = calculateDewPoint(T1_C, RH1);
 
             document.getElementById("rh2Output").innerText = `RH at ${T2.toFixed(1)}°${unit}: ${RH2.toFixed(2)}%`;
             document.getElementById("dewPointOutput").innerText = `Dew Point: ${dewPoint.toFixed(1)}°${unit}`;
 
             let ctx = document.getElementById("rhChart").getContext("2d");
 
-            let temperatures = unit === "F" ? Array.from({ length: 131 }, (_, i) => i - 10) : Array.from({ length: 71 }, (_, i) => i - 20);
-            let humidityValues = temperatures.map(t => calculateRH(RH1, T1, t));
+            let temperatures = unit === "F" ? Array.from({ length: 131 }, (_, i) => celsiusToFahrenheit(i - 20)) : Array.from({ length: 71 }, (_, i) => i - 20);
+            let humidityValues = temperatures.map(t => calculateRH(RH1, T1_C, unit === "F" ? fahrenheitToCelsius(t) : t));
 
             if (myChart) myChart.destroy();
 
@@ -175,22 +178,6 @@
                     plugins: {
                         annotation: {
                             annotations: {
-                                T1Line: {
-                                    type: "line",
-                                    xMin: T1,
-                                    xMax: T1,
-                                    borderColor: "red",
-                                    borderWidth: 2,
-                                    label: { content: `T1: ${T1.toFixed(1)}°${unit}`, enabled: true }
-                                },
-                                T2Line: {
-                                    type: "line",
-                                    xMin: T2,
-                                    xMax: T2,
-                                    borderColor: "green",
-                                    borderWidth: 2,
-                                    label: { content: `T2: ${T2.toFixed(1)}°${unit}`, enabled: true }
-                                },
                                 dewPointLine: {
                                     type: "line",
                                     xMin: dewPoint,
