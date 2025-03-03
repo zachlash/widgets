@@ -129,7 +129,7 @@
         }
 
         function calculateRH(RH1, T1_C, T2_C) {
-            return RH1 * (saturationVaporPressure(T1_C) / saturationVaporPressure(T2_C));
+            return Math.round(Math.min(RH1 * (saturationVaporPressure(T1_C) / saturationVaporPressure(T2_C)), 100));
         }
 
         function calculateDewPoint(T_C, RH) {
@@ -141,87 +141,49 @@
         let myChart;
 
         function updateChart() {
-    let RH1 = parseFloat(document.getElementById("rh1").value);
-    let T1 = parseFloat(document.getElementById("t1").value);
-    let T2 = parseFloat(document.getElementById("t2").value);
+            let RH1 = parseFloat(document.getElementById("rh1").value);
+            let T1 = parseFloat(document.getElementById("t1").value);
+            let T2 = parseFloat(document.getElementById("t2").value);
 
-    let T1_C = unit === "F" ? fahrenheitToCelsius(T1) : T1;
-    let T2_C = unit === "F" ? fahrenheitToCelsius(T2) : T2;
+            let T1_C = unit === "F" ? fahrenheitToCelsius(T1) : T1;
+            let T2_C = unit === "F" ? fahrenheitToCelsius(T2) : T2;
 
-    let RH2 = calculateRH(RH1, T1_C, T2_C);
-    let dewPoint_C = calculateDewPoint(T1_C, RH1);
-    let dewPoint_Display = unit === "F" ? celsiusToFahrenheit(dewPoint_C) : dewPoint_C;
+            let RH2 = calculateRH(RH1, T1_C, T2_C);
+            let dewPoint_C = calculateDewPoint(T1_C, RH1);
+            let dewPoint_Display = unit === "F" ? celsiusToFahrenheit(dewPoint_C) : dewPoint_C;
 
-    document.getElementById("rh2Output").innerText = `RH at ${T2.toFixed(1)}°${unit}: ${RH2.toFixed(2)}%`;
-    document.getElementById("dewPointOutput").innerText = `Dew Point: ${dewPoint_Display.toFixed(1)}°${unit}`;
+            document.getElementById("rh2Output").innerText = `RH at ${T2.toFixed(1)}°${unit}: ${RH2}%`;
+            document.getElementById("dewPointOutput").innerText = `Dew Point: ${Math.round(dewPoint_Display)}°${unit}`;
 
-    let ctx = document.getElementById("rhChart").getContext("2d");
+            let ctx = document.getElementById("rhChart").getContext("2d");
 
-    // Generate temperature range correctly in Celsius
-    let temperatures_C = Array.from({ length: 71 }, (_, i) => i - 20); 
-    let temperatures = unit === "F" ? temperatures_C.map(celsiusToFahrenheit) : temperatures_C;
+            let temperatures_C = Array.from({ length: 71 }, (_, i) => i - 20);
+            let temperatures = unit === "F" ? temperatures_C.map(celsiusToFahrenheit) : temperatures_C;
+            let humidityValues = temperatures_C.map(t_C => calculateRH(RH1, T1_C, t_C));
 
-    // Ensure RH is calculated using only Celsius values
-    let humidityValues = temperatures_C.map(t_C => calculateRH(RH1, T1_C, t_C));
+            if (myChart) myChart.destroy();
 
-    // Convert annotation markers to display units
-    let T1_Display = unit === "F" ? celsiusToFahrenheit(T1_C) : T1_C;
-    let T2_Display = unit === "F" ? celsiusToFahrenheit(T2_C) : T2_C;
-    let dewPoint_DisplayX = unit === "F" ? celsiusToFahrenheit(dewPoint_C) : dewPoint_C;
-
-    if (myChart) myChart.destroy();
-
-    myChart = new Chart(ctx, {
-        type: "line",
-        data: {
-            labels: temperatures,
-            datasets: [{
-                label: "Relative Humidity (%)",
-                data: humidityValues,
-                borderColor: "blue",
-                borderWidth: 2,
-                fill: false
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                annotation: {
-                    annotations: {
-                        T1Line: {
-                            type: "line",
-                            xMin: T1_Display,
-                            xMax: T1_Display,
-                            borderColor: "red",
-                            borderWidth: 2,
-                            label: { content: `T1: ${T1_Display.toFixed(1)}°${unit}`, enabled: true }
-                        },
-                        T2Line: {
-                            type: "line",
-                            xMin: T2_Display,
-                            xMax: T2_Display,
-                            borderColor: "green",
-                            borderWidth: 2,
-                            label: { content: `T2: ${T2_Display.toFixed(1)}°${unit}`, enabled: true }
-                        },
-                        dewPointLine: {
-                            type: "line",
-                            xMin: dewPoint_DisplayX,
-                            xMax: dewPoint_DisplayX,
-                            borderColor: "purple",
-                            borderWidth: 2,
-                            label: { content: `Dew Point: ${dewPoint_Display.toFixed(1)}°${unit}`, enabled: true }
-                        }
+            myChart = new Chart(ctx, {
+                type: "line",
+                data: {
+                    labels: temperatures,
+                    datasets: [{
+                        label: "Relative Humidity (%)",
+                        data: humidityValues,
+                        borderColor: "blue",
+                        borderWidth: 2,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { title: { display: true, text: `Temperature (${unit})` } },
+                        y: { min: 0, max: 100, title: { display: true, text: "Relative Humidity (%)" } }
                     }
                 }
-            },
-            scales: {
-                x: { title: { display: true, text: `Temperature (${unit})` } },
-                y: { min: 0, max: 100, title: { display: true, text: "Relative Humidity (%)" } }
-            }
+            });
         }
-    });
-}
 
         document.addEventListener("DOMContentLoaded", updateChart);
     </script>
