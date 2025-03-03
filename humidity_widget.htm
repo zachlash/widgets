@@ -128,14 +128,14 @@
             return 6.112 * Math.exp((17.62 * T) / (T + 243.12));
         }
 
-        function calculateRH(RH1, T1, T2) {
-            return RH1 * (saturationVaporPressure(T1) / saturationVaporPressure(T2));
+        function calculateRH(RH1, T1_C, T2_C) {
+            return RH1 * (saturationVaporPressure(T1_C) / saturationVaporPressure(T2_C));
         }
 
-        function calculateDewPoint(T, RH) {
+        function calculateDewPoint(T_C, RH) {
             let lnRH = Math.log(RH / 100);
-            let TdC = (243.12 * (lnRH + (17.62 * T) / (T + 243.12))) / (17.62 - (lnRH + (17.62 * T) / (T + 243.12)));
-            return unit === "F" ? celsiusToFahrenheit(TdC) : TdC;
+            return (243.12 * (lnRH + (17.62 * T_C) / (T_C + 243.12))) / 
+                   (17.62 - (lnRH + (17.62 * T_C) / (T_C + 243.12)));
         }
 
         let myChart;
@@ -149,14 +149,18 @@
             let T2_C = unit === "F" ? fahrenheitToCelsius(T2) : T2;
 
             let RH2 = calculateRH(RH1, T1_C, T2_C);
-            let dewPoint = calculateDewPoint(T1_C, RH1);
+            let dewPoint_C = calculateDewPoint(T1_C, RH1);
+            let dewPoint_Display = unit === "F" ? celsiusToFahrenheit(dewPoint_C) : dewPoint_C;
 
             document.getElementById("rh2Output").innerText = `RH at ${T2.toFixed(1)}°${unit}: ${RH2.toFixed(2)}%`;
-            document.getElementById("dewPointOutput").innerText = `Dew Point: ${dewPoint.toFixed(1)}°${unit}`;
+            document.getElementById("dewPointOutput").innerText = `Dew Point: ${dewPoint_Display.toFixed(1)}°${unit}`;
 
             let ctx = document.getElementById("rhChart").getContext("2d");
 
-            let temperatures = unit === "F" ? Array.from({ length: 131 }, (_, i) => celsiusToFahrenheit(i - 20)) : Array.from({ length: 71 }, (_, i) => i - 20);
+            let temperatures = unit === "F" ? 
+                Array.from({ length: 131 }, (_, i) => celsiusToFahrenheit(i - 20)) : 
+                Array.from({ length: 71 }, (_, i) => i - 20);
+
             let humidityValues = temperatures.map(t => calculateRH(RH1, T1_C, unit === "F" ? fahrenheitToCelsius(t) : t));
 
             if (myChart) myChart.destroy();
@@ -174,21 +178,7 @@
                     }]
                 },
                 options: {
-                    responsive: true,
-                    plugins: {
-                        annotation: {
-                            annotations: {
-                                dewPointLine: {
-                                    type: "line",
-                                    xMin: dewPoint,
-                                    xMax: dewPoint,
-                                    borderColor: "purple",
-                                    borderWidth: 2,
-                                    label: { content: `Dew Point: ${dewPoint.toFixed(1)}°${unit}`, enabled: true }
-                                }
-                            }
-                        }
-                    }
+                    responsive: true
                 }
             });
         }
