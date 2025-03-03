@@ -6,8 +6,8 @@
     <title>Relative Humidity Calculator</title>
 
     <!-- Load Chart.js and Annotations Plugin -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.3.0"></script>
 
     <style>
         body {
@@ -115,8 +115,6 @@
 
             if (myChart) myChart.destroy(); // Destroy old chart before creating new one
 
-            Chart.register(ChartjsPluginAnnotation);
-
             myChart = new Chart(ctx, {
                 type: "line",
                 data: {
@@ -136,26 +134,34 @@
                             annotations: {
                                 line1: {
                                     type: "line",
-                                    xMin: temperatures.indexOf(T1),
-                                    xMax: temperatures.indexOf(T1),
+                                    xMin: T1,
+                                    xMax: T1,
                                     borderColor: "red",
-                                    borderWidth: 3,
+                                    borderWidth: 2,
                                     label: { content: `T1: ${T1}°${unit}`, enabled: true, position: "top" }
                                 },
                                 line2: {
                                     type: "line",
-                                    xMin: temperatures.indexOf(T2),
-                                    xMax: temperatures.indexOf(T2),
+                                    xMin: T2,
+                                    xMax: T2,
                                     borderColor: "green",
-                                    borderWidth: 3,
+                                    borderWidth: 2,
                                     label: { content: `T2: ${T2}°${unit}`, enabled: true, position: "top" }
                                 }
                             }
                         }
                     },
                     scales: {
-                        x: { title: { display: true, text: `Temperature (${unit})` } },
-                        y: { min: 0, max: 100, title: { display: true, text: "Relative Humidity (%)" } }
+                        x: { 
+                            title: { display: true, text: `Temperature (${unit})` },
+                            type: "linear",
+                            ticks: { stepSize: 10 }
+                        },
+                        y: { 
+                            min: 0, 
+                            max: 100, 
+                            title: { display: true, text: "Relative Humidity (%)" } 
+                        }
                     }
                 }
             });
